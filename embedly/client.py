@@ -8,11 +8,25 @@ import re
 import urllib
 import httplib2
 import json
+from functools import wraps
 
 from models import Url
 
 domain_re = re.compile('^(api|pro)\.embed\.ly$')
 USER_AGENT = 'Mozilla/5.0 (compatible; embedly-python/0.2;)'
+
+class ProAccountRequired(Exception):
+    def __init__(self, func):
+        msg = "Pro Embedly Account required for %s method." % func
+        super(ProAccountRequired, self).__init__(msg)
+
+def pro_required(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self.key or 'pro' not in self.domain:
+            raise ProAccountRequired(func.__name__)
+        return func(self, *args, **kwargs)
+    return wrapper
 
 class Embedly(object):
     """
@@ -167,13 +181,15 @@ class Embedly(object):
         oembed
         """
         return self._get(1, 'oembed', url_or_urls, **kwargs)
-    
+
+    @pro_required
     def preview(self, url_or_urls, **kwargs):
         """
         oembed
         """
         return self._get(1, 'preview', url_or_urls, **kwargs)
-    
+
+    @pro_required
     def objectify(self, url_or_urls, **kwargs):
         """
         oembed
